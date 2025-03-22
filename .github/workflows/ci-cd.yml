@@ -1,0 +1,42 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install flake8 pytest coverage
+
+    - name: Run linter (flake8)
+      run: flake8 app tests
+
+    - name: Run tests
+      run: |
+        pytest --cov=app tests/
+
+    - name: Deploy via SSH
+      if: success()
+      run: |
+        echo "$SSH_KEY" > key.pem
+        chmod 600 key.pem
+        ssh -i key.pem -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST 'cd /your/project/path && git pull && docker-compose up -d --build'
+      env:
+        SSH_KEY: ${{ secrets.SSH_KEY }}
+        SSH_USER: ${{ secrets.SSH_USER }}
+        SSH_HOST: ${{ secrets.SSH_HOST }}
