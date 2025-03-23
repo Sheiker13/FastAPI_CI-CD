@@ -23,20 +23,17 @@ jobs:
         pip install -r requirements.txt
         pip install flake8 pytest coverage
 
-    - name: Run linter (flake8)
+    - name: Lint with flake8
       run: flake8 app tests
 
-    - name: Run tests
+    - name: Run tests with coverage
       run: |
-        pytest --cov=app tests/
+        coverage run -m pytest
+        coverage report
+        coverage xml
 
-    - name: Deploy via SSH
-      if: success()
-      run: |
-        echo "$SSH_KEY" > key.pem
-        chmod 600 key.pem
-        ssh -i key.pem -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST 'cd /your/project/path && git pull && docker-compose up -d --build'
-      env:
-        SSH_KEY: ${{ secrets.SSH_KEY }}
-        SSH_USER: ${{ secrets.SSH_USER }}
-        SSH_HOST: ${{ secrets.SSH_HOST }}
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: coverage.xml
